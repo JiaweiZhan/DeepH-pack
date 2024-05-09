@@ -247,7 +247,7 @@ class DeepHKernel:
             self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.2, patience=10,
                                                verbose=True, threshold=1e-4, threshold_mode='rel', min_lr=0)
         elif self.config.get('hyperparameter', 'lr_scheduler') == 'CyclicLR':
-            self.scheduler = CyclicLR(self.optimizer, base_lr=learning_rate * 0.1, max_lr=learning_rate,
+            self.scheduler = CyclicLR(self.optimizer, base_lr=learning_rate * 0.2, max_lr=learning_rate,
                                       mode='triangular', step_size_up=50, step_size_down=50, cycle_momentum=False)
         else:
             raise ValueError('Unknown lr_scheduler: {}'.format(self.config.getfloat('hyperparameter', 'lr_scheduler')))
@@ -529,13 +529,17 @@ class DeepHKernel:
                     self.model.load_state_dict(best_checkpoint['state_dict'])
                     self.optimizer.load_state_dict(best_checkpoint['optimizer_state_dict'])
                     if self.config.getboolean('train', 'revert_then_decay'):
-                        if lr_step < lr_step_num:
+                        # if lr_step < lr_step_num:
+                        if lr_step < lr_step_num and epoch >= revert_decay_epoch[lr_step]:
                             for param_group in self.optimizer.param_groups:
                                 param_group['lr'] = learning_rate * revert_decay_gamma[lr_step]
+                            if self.config.get('hyperparameter', 'lr_scheduler') == 'CyclicLR':
+                                self.scheduler.base_lrs = [self.optimizer.param_groups[0]['lr'] * 0.2] * len(self.scheduler.base_lrs)
+                                self.scheduler.max_lrs = [self.optimizer.param_groups[0]['lr']] * len(self.scheduler.max_lrs)
                             lr_step += 1
                     with torch.no_grad():
                         val_losses = self.kernel_fn(val_loader, 'VAL')
-                    print(f"Revert (threshold: {self.config.getfloat('train', 'revert_threshold')}) to epoch {best_checkpoint['epoch']} \t| Val loss: {val_losses.avg:.8f}")
+                    print(f"Revert (threshold: {self.config.getfloat('train', 'revert_threshold')}) to epoch {best_checkpoint['epoch']} \t| Val loss: {val_losses.avg:.8f} with lr {self.optimizer.param_groups[0]['lr']:0.2e}")
                     if self.if_tensorboard:
                         self.tb_writer.add_scalars('loss', {'Validation loss': val_losses.avg}, global_step=epoch)
 
@@ -549,11 +553,14 @@ class DeepHKernel:
                 if self.if_tensorboard:
                     self.tb_writer.add_scalars('loss', {'Validation loss': val_losses.avg}, global_step=epoch)
 
-                if self.config.getboolean('train', 'revert_then_decay'):
-                    if lr_step < lr_step_num and epoch >= revert_decay_epoch[lr_step]:
-                        for param_group in self.optimizer.param_groups:
-                            param_group['lr'] *= revert_decay_gamma[lr_step]
-                        lr_step += 1
+                # if self.config.getboolean('train', 'revert_then_decay'):
+                #     if lr_step < lr_step_num and epoch >= revert_decay_epoch[lr_step]:
+                #         for param_group in self.optimizer.param_groups:
+                #             param_group['lr'] *= revert_decay_gamma[lr_step]
+                #         if self.config.get('hyperparameter', 'lr_scheduler') == 'CyclicLR':
+                #             self.scheduler.base_lrs = [self.optimizer.param_groups[0]['lr'] * 0.2] * len(self.scheduler.base_lrs)
+                #             self.scheduler.max_lrs = [self.optimizer.param_groups[0]['lr']] * len(self.scheduler.max_lrs)
+                #         lr_step += 1
 
                 is_best = val_losses.avg < self.best_val_loss
                 self.best_val_loss = min(val_losses.avg, self.best_val_loss)
@@ -810,9 +817,9 @@ class DeepHKernel:
                         print(f'{test_stru_id}: {test_error * 1000:.2f} meV / unit_cell')
 
         if task != 'TRAIN' and (self.out_fea_len != 1):
-            print('%s loss each out:' % task)
-            loss_list = list(map(lambda x: f'{x.avg:0.1e}', losses_each_out))
-            print('[' + ', '.join(loss_list) + ']')
+            # print('%s loss each out:' % task)
+            # loss_list = list(map(lambda x: f'{x.avg:0.1e}', losses_each_out))
+            # print('[' + ', '.join(loss_list) + ']')
             loss_list = list(map(lambda x: x.avg, losses_each_out))
             print(f'max orbital: {max(loss_list):0.1e} (0-based index: {np.argmax(loss_list)})')
         if task == 'TEST':
