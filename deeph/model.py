@@ -140,7 +140,7 @@ class CGConv(MessagePassing):
             self.gn = GraphNorm(channels[1])
         elif self.normalization == "DiffGroupNorm":
             self.group_norm = DiffGroupNorm(channels[1], 128)
-        elif self.normalization is None:
+        elif self.normalization == "None" or self.normalization is None:
             pass
         else:
             raise ValueError("Unknown normalization function: {}".format(normalization))
@@ -277,7 +277,7 @@ class GINEConv(MessagePassing):
             self.gn = GraphNorm(in_features)
         elif self.normalization == "DiffGroupNorm":
             self.group_norm = DiffGroupNorm(in_features)
-        elif self.normalization is None:
+        elif self.normalization == "None" or self.normalization is None:
             pass
         else:
             raise ValueError("Unknown normalization function: {}".format(normalization))
@@ -399,7 +399,7 @@ class GAT_Crystal(MessagePassing):
             self.gn = GraphNorm(out_features)
         elif self.normalization == "DiffGroupNorm":
             self.group_norm = DiffGroupNorm(out_features, 128)
-        elif self.normalization is None:
+        elif self.normalization == "None" or self.normalization is None:
             pass
         else:
             raise ValueError("Unknown normalization function: {}".format(normalization))
