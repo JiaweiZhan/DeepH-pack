@@ -20,12 +20,12 @@ def gaussian_smearing(distances, offset, widths, centered=False):
 
 class GaussianBasis(nn.Module):
     def __init__(
-            self, start=0.0, stop=5.0, n_gaussians=50, centered=False, trainable=False
+        self, start=0.0, stop=5.0, n_gaussians=50, centered=False, trainable=False
     ):
         super(GaussianBasis, self).__init__()
         # compute offset and width of Gaussian functions
         offset = torch.linspace(start, stop, n_gaussians)
-        widths = torch.FloatTensor((offset[1] - offset[0]) * torch.ones_like(offset))
+        widths = (offset[1] - offset[0]) * torch.ones_like(offset)
         if trainable:
             self.width = nn.Parameter(widths)
             self.offsets = nn.Parameter(offset)
@@ -48,3 +48,4 @@ class GaussianBasis(nn.Module):
         return gaussian_smearing(
             distances, self.offsets, self.width, centered=self.centered
         )
+
