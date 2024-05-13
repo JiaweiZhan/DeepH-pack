@@ -280,7 +280,7 @@ class DeepHKernel:
             )
         elif self.config.get("hyperparameter", "optimizer") == "adamW":
             self.optimizer = optim.AdamW(
-                model_parameters, lr=learning_rate, betas=(0.9, 0.999)
+                model_parameters, lr=learning_rate, betas=(0.9, 0.999), fused=True
             )
         elif self.config.get("hyperparameter", "optimizer") == "adagrad":
             self.optimizer = optim.Adagrad(model_parameters, lr=learning_rate)
@@ -305,10 +305,11 @@ class DeepHKernel:
                 self.optimizer,
                 mode="min",
                 factor=0.9,
-                patience=100,
+                patience=50,
                 verbose=True,
-                threshold=1e-11,
+                threshold=0.0,
                 threshold_mode="rel",
+                cooldown=10,
                 min_lr=0,
             )
         elif self.config.get("hyperparameter", "lr_scheduler") == "CyclicLR":
